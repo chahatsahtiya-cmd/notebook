@@ -1,44 +1,57 @@
-import os
-
-class NoteApp:
-    def __init__(self, filename="notes.txt"):
-        self.filename = filename
-        if not os.path.exists(self.filename):
-            with open(self.filename, "w") as f:
-                pass  # Create the file if it doesn't exist
-
-    def add_note(self, note):
-        with open(self.filename, "a") as f:
-            f.write(note + "\n")
-        print("Note added!")
-
-    def view_notes(self):
-        with open(self.filename, "r") as f:
-            notes = f.readlines()
-        if notes:
-            print("Your Notes:")
-            for idx, note in enumerate(notes, 1):
-                print(f"{idx}. {note.strip()}")
-        else:
-            print("No notes found.")
-
-    def delete_note(self, note_number):
-        with open(self.filename, "r") as f:
-            notes = f.readlines()
-        if 1 <= note_number <= len(notes):
-            notes.pop(note_number - 1)
-            with open(self.filename, "w") as f:
-                f.writelines(notes)
-            print("Note deleted!")
-        else:
-            print("Invalid note number.")
-
-    def menu(self):
-        while True:
-            print("\n--- Note Taking App ---")
 import streamlit as st
+import os
+import json
 
-st.title("🎈 My new app")
-st.write(
-    "Let's start building! For help and inspiration, head over to [docs.streamlit.io](https://docs.streamlit.io/)."
-)
+# Set the title of the app
+st.title('Simple Note-Taking App')
+
+# File to store notes
+notes_file = 'notes.json'
+
+# Initialize notes storage if file doesn't exist
+if not os.path.exists(notes_file):
+    with open(notes_file, 'w') as f:
+        json.dump([], f)
+
+# Function to load notes from the file
+def load_notes():
+    with open(notes_file, 'r') as f:
+        return json.load(f)
+
+# Function to save notes to the file
+def save_notes(notes):
+    with open(notes_file, 'w') as f:
+        json.dump(notes, f)
+
+# Display the current notes
+notes = load_notes()
+
+# Display existing notes in the app
+st.subheader("Your Notes")
+for idx, note in enumerate(notes):
+    st.text_area(f"Note {idx + 1}", value=note, height=100, max_chars=1000, key=f"note_{idx}", disabled=True)
+    st.write("---")
+
+# Add a new note
+st.subheader("Add a New Note")
+new_note = st.text_area("Your new note", height=150, max_chars=1000)
+
+# Button to save the new note
+if st.button("Save Note"):
+    if new_note.strip():
+        notes.append(new_note)
+        save_notes(notes)
+        st.success("Note saved successfully!")
+    else:
+        st.warning("Note can't be empty!")
+
+# Delete a note
+st.subheader("Delete a Note")
+note_to_delete = st.selectbox("Select note to delete", [f"Note {i+1}" for i in range(len(notes))])
+if st.button("Delete Note"):
+    if note_to_delete:
+        notes.pop(int(note_to_delete.split()[-1]) - 1)
+        save_notes(notes)
+        st.success(f"{note_to_delete} deleted successfully!")
+    else:
+        st.warning("No note selected to delete.")
